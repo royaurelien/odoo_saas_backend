@@ -1,0 +1,12 @@
+aiofiles==0.8.0
+celery==5.2.3
+fastapi==0.65.1
+flower==1.0.0
+pytest==6.2.4
+redis==4.1.4
+requests==2.27.1
+uvicorn==0.17.6
+sh==1.14.2
+psycopg==3.0.10
+psycopg_pool
+pydantic==1.8.2

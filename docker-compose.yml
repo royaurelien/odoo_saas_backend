@@ -1,0 +1,69 @@
+version: '3.8'
+services:
+
+  web:
+    build: .
+    ports:
+      - 8004:8000
+    command: uvicorn main:app --host 0.0.0.0 --reload
+    volumes:
+      - ./app:/usr/src/app
+      - ./input:/usr/src/input:rw,z
+      - ./output:/usr/src/output:rw,z
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - redis
+
+  worker:
+    build: .
+    command: celery --app=worker.main:celery worker --autoscale=3 --loglevel=info -E --logfile=logs/celery.log
+    volumes:
+      - ./app:/usr/src/app
+      - ./input:/usr/src/input:rw,z
+      - ./output:/usr/src/output:rw,z
+      - ./filestore:/usr/src/filestore:rw,z
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - POSTGRES_PASSWORD=odoo
+      - POSTGRES_USER=odoo
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
+    depends_on:
+      - web
+      - redis
+
+  redis:
+    image: redis:6-alpine
+
+  dashboard:
+    build: .
+    command: celery --broker=redis://redis:6379/0 flower --port=5555
+    ports:
+      - 5556:5555
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - web
+      - redis
+      - worker
+  db:
+    image: postgres:11
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: odoo
+      POSTGRES_USER: odoo
+      POSTGRES_DB: postgres
+    restart: unless-stopped
+    # volumes:
+      # - ./postgres:/var/lib/postgresql/data
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
