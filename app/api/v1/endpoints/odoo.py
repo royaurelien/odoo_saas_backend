@@ -82,3 +82,30 @@ def restore_backup(payload = Body(...)):
     }
     # print([item.name for item in list(map(lambda x: x.name, tasks))])
     return JSONResponse(result)
+
+
+@router.post("/duplicate", status_code=201)
+def run_task_duplicate(payload = Body(...)):
+    data = {
+        'db_name': payload["name"],
+        'new_db': payload["new"]
+    }
+
+    # filestore = payload.get('filestore', DEFAULT_DUMP_FS)
+    # dump = payload.get('dump', DEFAULT_DUMP_FORMAT)
+
+    tasks = chain(
+        wk.create_env.s(data),
+        wk.dump_db.s(),
+        wk.create_database.s(data['new_db']),
+        wk.restore_dump.s(data['new_db']),
+        wk.copy_filestore.s(),
+        wk.clean_workdir.s(),
+    ).on_error(wk.error_handler.s()).apply_async()
+
+    result = {
+        "task_id": tasks.id,
+        "parent_id": [t.id for t in list(utils.unpack_parents(tasks))][-1],
+        # "all": store(tasks)
+    }
+    return JSONResponse(result)

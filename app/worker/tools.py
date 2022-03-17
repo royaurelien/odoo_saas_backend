@@ -280,3 +280,13 @@ def add_folder_to_zip(path, zipfile, task=None):
     stats = os.stat(zipfile)
 
     return (True, {'path': zipfile, 'size':stats.st_size})
+
+
+def copy_filestore(src_path, dest_path):
+    _check_path(src_path)
+
+    shutil.copytree(src_path, dest_path)
+
+    stats = os.stat(dest_path)
+
+    return (True, {'path': dest_path, 'size':stats.st_size})

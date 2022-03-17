@@ -152,10 +152,12 @@ def unzip_dump(data):
 
 
 @celery.task(name="restore_dump")
-def restore_dump(data):
+def restore_dump(data, name=False):
     file = data['dump']['path']
 
-    success, results = tools.restore_db_dump(data.get('db_name'), file)
+    db_name = name if name else data.get('db_name')
+
+    success, results = tools.restore_db_dump(db_name, file)
     data['dump'] = results
 
     return data
@@ -175,7 +177,18 @@ def unzip_filestore(data):
     return data
 
 @celery.task(name="create_database")
-def create_database(data):
-    success = tools.create_database(data.get('db_name'))
+def create_database(data, name=False):
+    db_name = name if name else data.get('db_name')
+    success = tools.create_database(db_name)
+
+    return data
+
+@celery.task(name="copy_filestore")
+def copy_filestore(data):
+    src = os.path.join(FILESTORE_PATH, data.get('db_name'))
+    dest = os.path.join(FILESTORE_PATH, data.get('new_db'))
+    success, results = tools.copy_filestore(src, dest)
+
+    data['new'] = results
 
     return data
